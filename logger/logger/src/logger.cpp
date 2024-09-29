@@ -53,7 +53,7 @@ std::string logger::severity_to_string(
         case logger::severity::error:
             return "ERROR";
         case logger::severity::critical:
-            return "CRITICAL";
+            return "CRITICAL hello";
     }
 
     throw std::out_of_range("Invalid severity value");
