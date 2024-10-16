@@ -42,7 +42,7 @@ client_logger::client_logger(std::map <std::string, unsigned char> path_severity
                         p_streams.second.first->close();
                         delete p_streams.second.first;
                     }
-                    throw std::runtime_error("std::runtime_error");
+                    throw std::runtime_error("file did not open");
                 }
                 a->second.second = 1;
                 a->first = pair.first; //что тебе не нравится??
@@ -86,7 +86,15 @@ client_logger &client_logger::operator=(
 
 client_logger::~client_logger() noexcept
 {
-    throw not_implemented("client_logger::~client_logger() noexcept", "your code should be here...");
+    for (auto const &pair: file_path_severity){
+        if (pair.first != "cerr")
+            map_streams[pair.first].second -= 1;
+            if (map_streams[pair.first].second == 0){
+                map_streams[pair.first].first -> close();
+                delete map_streams[pair.first].first;
+                map_streams.erase(pair.first);
+            }
+    }
 }
 
 logger const *client_logger::log(
