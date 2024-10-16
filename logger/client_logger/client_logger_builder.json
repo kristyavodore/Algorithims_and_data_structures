@@ -1,0 +1,26 @@
+{
+  "file_paths": [
+    {
+      "path": "1.txt",
+      "severity": [
+        "trace"
+      ]
+    },
+    {
+      "path": "2.txt",
+      "severity": [
+        "trace",
+        "debug"
+      ]
+    },
+    {
+      "path": "3.txt",
+      "severity": [
+        "trace",
+        "debug",
+        "information"
+      ]
+    }
+  ],
+  "format" : "%d %t !hui! %s %m"
+}
