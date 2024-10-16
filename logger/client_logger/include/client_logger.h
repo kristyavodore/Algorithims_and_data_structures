@@ -2,6 +2,7 @@
 #define MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_H
 
 #include <logger.h>
+#include <map>
 #include "client_logger_builder.h"
 
 class client_logger final:
@@ -9,6 +10,8 @@ class client_logger final:
 {
 
 public:
+
+    client_logger(std::map <std::string, unsigned char> file_path_severity, std::string format_str);
 
     client_logger(
         client_logger const &other);

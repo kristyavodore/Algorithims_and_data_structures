@@ -2,6 +2,10 @@
 
 #include "../include/client_logger.h"
 
+client_logger::client_logger(std::map <std::string, unsigned char> file_path_severity, std::string format_str){
+    throw not_implemented("client_logger::client_logger(std::map <std::string, unsigned char> file_path_severity, std::string format_str)", "your code should be here...");
+}
+
 client_logger::client_logger(
     client_logger const &other)
 {
