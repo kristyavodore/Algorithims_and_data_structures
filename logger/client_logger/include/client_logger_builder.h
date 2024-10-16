@@ -2,10 +2,17 @@
 #define MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_BUILDER_H
 
 #include <logger_builder.h>
+#include <filesystem>
 
 class client_logger_builder final:
     public logger_builder
 {
+
+private:
+
+    std::map <std::string, unsigned char> file_path_severity;
+    std::string format_str;
+
 
 public:
 
@@ -42,6 +49,9 @@ public:
 
     [[nodiscard]] logger *build() const override;
 
+
+public:
+    static std::string absolut_path(const std::string &relative_path) ;
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_BUILDER_H
