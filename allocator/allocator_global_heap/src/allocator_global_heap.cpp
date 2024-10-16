@@ -2,48 +2,58 @@
 
 #include "../include/allocator_global_heap.h"
 
-allocator_global_heap::allocator_global_heap(
-    logger *logger)
+allocator_global_heap::allocator_global_heap(logger *logger) //constructor
 {
-    throw not_implemented("allocator_global_heap::allocator_global_heap(logger *)", "your code should be here...");
+    _logger = logger;
 }
 
-allocator_global_heap::~allocator_global_heap()
+allocator_global_heap::~allocator_global_heap() //destructor
 {
-    throw not_implemented("allocator_global_heap::~allocator_global_heap()", "your code should be here...");
+    _logger = nullptr;
 }
 
-allocator_global_heap::allocator_global_heap(
-    allocator_global_heap &&other) noexcept
+allocator_global_heap::allocator_global_heap(allocator_global_heap &&other) noexcept //move constructor
 {
-    throw not_implemented("allocator_global_heap::allocator_global_heap(allocator_global_heap &&) noexcept", "your code should be here...");
+    _logger = other._logger;
+    other._logger = nullptr;
 }
 
-allocator_global_heap &allocator_global_heap::operator=(
-    allocator_global_heap &&other) noexcept
+allocator_global_heap &allocator_global_heap::operator=(allocator_global_heap &&other) noexcept //move assignment operator
 {
-    throw not_implemented("allocator_global_heap &allocator_global_heap::operator=(allocator_global_heap &&) noexcept", "your code should be here...");
+        if (this != &other)
+        {
+            _logger = other._logger;
+            other._logger = nullptr;
+        }
+    return *this;
 }
 
 [[nodiscard]] void *allocator_global_heap::allocate(
     size_t value_size,
     size_t values_count)
 {
-    throw not_implemented("[[nodiscard]] void *allocator_global_heap::allocate(size_t, size_t)", "your code should be here...");
+    try
+    {
+        return ::operator new(value_size*values_count);
+    }
+    catch (std::bad_alloc &ex)
+    {
+        //передаём логгеру
+        throw ex;
+    }
 }
 
-void allocator_global_heap::deallocate(
-    void *at)
+void allocator_global_heap::deallocate(void *at) //destructor
 {
-    throw not_implemented("void allocator_global_heap::deallocate(void *)", "your code should be here...");
+    ::operator delete (at);
 }
 
 inline logger *allocator_global_heap::get_logger() const
 {
-    throw not_implemented("inline logger *allocator_global_heap::get_logger() const", "your code should be here...");
+    return _logger;
 }
 
 inline std::string allocator_global_heap::get_typename() const noexcept
 {
-    throw not_implemented("inline std::string allocator_global_heap::get_typename() const noexcept", "your code should be here...");
+    return "allocator_global_heap";
 }

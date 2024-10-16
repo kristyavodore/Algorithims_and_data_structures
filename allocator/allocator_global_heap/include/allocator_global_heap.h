@@ -18,7 +18,7 @@ private:
 
 public:
     
-    explicit allocator_global_heap(
+    explicit allocator_global_heap( //constructor
         logger *logger = nullptr);
     
     ~allocator_global_heap() override;
