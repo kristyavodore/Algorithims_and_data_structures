@@ -9,6 +9,11 @@ class client_logger final:
     public logger
 {
 
+    std::map <std::string, unsigned char> file_path_severity;
+    std::string format_str;
+
+    static std::map <std::string, std::pair<std::ofstream*, int>> map_streams;
+
 public:
 
     client_logger(std::map <std::string, unsigned char> file_path_severity, std::string format_str);
@@ -33,6 +38,12 @@ public:
         const std::string &message,
         logger::severity severity) const noexcept override;
 
+
+public:
+
+    void copy (const client_logger & other);
+    void move ( client_logger && other);
+    void clear();
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_H
