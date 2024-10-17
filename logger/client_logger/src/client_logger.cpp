@@ -154,6 +154,7 @@ std::string client_logger::formating_string(std::string const &text, logger::sev
                 default:
                     str += '%';
                     str += format_str[i+1];
+                    i++;
                     break;
             }
         }
