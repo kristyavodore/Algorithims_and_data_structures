@@ -24,28 +24,38 @@ client_logger::client_logger(std::map <std::string, unsigned char> path_severity
     {
         if (pair.first != "cerr")
         {
+            // std::pair<std::string, std::pair<std::ofstream*, int>> a
             auto a = map_streams.find(pair.first);
 
             if (a != map_streams.end())
             {
-                a->second.second+1;
+                a->second.second+=1;
             }
             else
             {
-                //std::ofstream* file = new std::ofstream(pair.first);
-                a->second.first = new std::ofstream(pair.first);
-                if (!a->second.first) { // если текущий файл не открылся
-                    a->second.first->close();
-                    delete a->second.first;
+                std::ofstream* file = new std::ofstream(pair.first);
+                if (!file->is_open()) { // если текущий файл не открылся
+                    delete file;
 
-                    for (auto const &p_streams: map_streams) { // то закрываем уже открытые файлы и чистим указатели
-                        p_streams.second.first->close();
-                        delete p_streams.second.first;
+                    // проходим по мапе path_severity от начала до текущего, чтобы закрыть ранее открытые файлы
+                    auto iter = path_severity.find(pair.first);
+                    for (auto i = path_severity.begin(); i != iter; ++i) {
+                        if (i -> first != "cerr")
+                        {
+                            map_streams[i -> first].second -= 1;
+                            if (map_streams[i -> first].second == 0)
+                            {
+                                map_streams[i -> first].first -> flush();
+                                map_streams[i -> first].first -> close();
+                                delete map_streams[i -> first].first;
+                                map_streams.erase(i -> first);
+                            }
+                        }
                     }
                     throw std::runtime_error("file did not open");
                 }
-                a->second.second = 1;
-                a->first = pair.first; //что тебе не нравится??
+                // если всё ок, то кладём в мапу
+                map_streams.insert(std::make_pair(pair.first, std::make_pair(file, 1)));
             }
         }
     }
@@ -90,6 +100,7 @@ client_logger::~client_logger() noexcept
         if (pair.first != "cerr")
             map_streams[pair.first].second -= 1;
             if (map_streams[pair.first].second == 0){
+                map_streams[pair.first].first -> flush();
                 map_streams[pair.first].first -> close();
                 delete map_streams[pair.first].first;
                 map_streams.erase(pair.first);
@@ -101,7 +112,55 @@ logger const *client_logger::log(
     const std::string &text,
     logger::severity severity) const noexcept
 {
-    throw not_implemented("logger const *client_logger::log(const std::string &text, logger::severity severity) const noexcept", "your code should be here...");
+    std::string str = formating_string(text, severity);
+
+    for (auto const &iter: file_path_severity)
+    {
+        if ((iter.second & (1 << static_cast<int>(severity))) != 0)
+        {
+
+            if (iter.first != "cerr")
+                *(map_streams[iter.first].first) << str << std::endl;
+            else
+                std::cerr << str << std::endl;
+        }
+    }
+    return this;
+}
+
+std::string client_logger::formating_string(std::string const &text, logger::severity severity) const
+{
+    std::string str;
+
+    for(auto i = 0; i < format_str.size(); i++) {
+        if(format_str[i] == '%' && (i + 1) != format_str.size()) {
+            switch(format_str[i+1]) {
+                case 'd':
+                    str += current_datetime_to_string().substr(0, 10);
+                    i++;
+                    break;
+                case 't':
+                    str += current_datetime_to_string().substr(10, 9);
+                    i++;
+                    break;
+                case 's':
+                    str += severity_to_string(severity);
+                    i++;
+                    break;
+                case 'm':
+                    str += text;
+                    i++;
+                    break;
+                default:
+                    str += '%';
+                    str += format_str[i+1];
+                    break;
+            }
+        }
+        str += format_str[i];
+    }
+
+    return str;
 }
 
 void client_logger::copy(const client_logger & other){

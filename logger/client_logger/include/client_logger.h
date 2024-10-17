@@ -39,11 +39,13 @@ public:
         logger::severity severity) const noexcept override;
 
 
-public:
+private:
 
     void copy (const client_logger & other);
     void move ( client_logger && other);
     void clear();
+
+    std::string formating_string(std::string const &text, logger::severity severity) const;
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_H
