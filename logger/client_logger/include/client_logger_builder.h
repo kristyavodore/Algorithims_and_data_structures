@@ -1,8 +1,10 @@
 #ifndef MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_BUILDER_H
 #define MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_BUILDER_H
 
-#include <logger_builder.h>
+//#include <logger_builder.h>
 #include <filesystem>
+#include "../../logger/include/logger_builder.h"
+#include <map>
 
 class client_logger_builder final:
     public logger_builder
@@ -44,6 +46,9 @@ public:
     logger_builder* transform_with_configuration(
         std::string const &configuration_file_path,
         std::string const &configuration_path) override;
+
+    logger_builder* set_format(
+            std::string const& format);
 
     logger_builder *clear() override;
 

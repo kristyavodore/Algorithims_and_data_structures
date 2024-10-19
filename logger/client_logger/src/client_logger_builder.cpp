@@ -12,10 +12,7 @@ class path;
 
 class path;
 
-client_logger_builder::client_logger_builder()
-{
-    throw not_implemented("client_logger_builder::client_logger_builder()", "your code should be here...");
-}
+client_logger_builder::client_logger_builder()=default;
 
 client_logger_builder::client_logger_builder( //copy constructor
     client_logger_builder const &other)
@@ -102,14 +99,6 @@ logger_builder *client_logger_builder::add_console_stream(
     return this;
 }
 
-//logger_builder* client_logger_builder::transform_with_configuration(
-//    std::string const &configuration_file_path,
-//    std::string const &configuration_path)
-//{
-//    throw not_implemented("logger_builder* client_logger_builder::transform_with_configuration(std::string const &configuration_file_path, std::string const &configuration_path)", "your code should be here...");
-//}
-
-
 logger_builder* client_logger_builder::transform_with_configuration(
         std::string const &configuration_file_path,
         std::string const &configuration_path)
@@ -133,6 +122,12 @@ logger_builder* client_logger_builder::transform_with_configuration(
 
     configuration_file.close();
 
+    return this;
+}
+
+logger_builder* client_logger_builder::set_format(std::string const& format)
+{
+    format_str = format;
     return this;
 }
 

@@ -1,7 +1,7 @@
 #ifndef MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_H
 #define MATH_PRACTICE_AND_OPERATING_SYSTEMS_CLIENT_LOGGER_H
 
-#include <logger.h>
+#include <C:\Users\Krist\CLionProjects\Algorithims_and_data_structures\logger\logger\include\logger.h>
 #include <map>
 #include "client_logger_builder.h"
 
@@ -14,9 +14,11 @@ class client_logger final:
 
     static std::map <std::string, std::pair<std::ofstream*, int>> map_streams;
 
-public:
+private:
 
-    client_logger(std::map <std::string, unsigned char> file_path_severity, std::string format_str);
+    client_logger(std::map <std::string, unsigned char> const &file_path_severity, std::string const &format_str);
+
+public:
 
     client_logger(
         client_logger const &other);

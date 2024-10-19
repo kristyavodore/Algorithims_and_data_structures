@@ -1,24 +1,26 @@
-#include <not_implemented.h>
+//#include <not_implemented.h>
 #include <iostream>
 #include <fstream>
 
 #include "../include/client_logger.h"
 
-client_logger::client_logger(std::map <std::string, unsigned char> path_severity, std::string format){
-    for (auto i=0; i < format.size();  i++)
-    {
-        if (format[i] == '%')
-        {
-            if (i == format.size()-1)
-            {
-                throw std::logic_error("Format is invalid");
-            }
-            if (!isalpha(format[i+1])){
-                throw std::logic_error("Format is invalid");
-            }
-            format_str+=format[i];
-        }
-    }
+std::map <std::string, std::pair<std::ofstream*, int>> client_logger::map_streams = std::map <std::string, std::pair<std::ofstream*, int>>(); // инициализация статического поля
+
+client_logger::client_logger(std::map <std::string, unsigned char> const & path_severity, std::string const & format):file_path_severity(path_severity), format_str(format){
+//    for (auto i=0; i < format.size();  i++)
+//    {
+//        if (format[i] == '%')
+//        {
+//            if (i == format.size()-1)
+//            {
+//                throw std::logic_error("Format is invalid");
+//            }
+//            if (!isalpha(format[i+1])){
+//                throw std::logic_error("Format is invalid");
+//            }
+//            format_str+=format[i];
+//        }
+//    }
 
     for (auto const &pair: path_severity)
     {
@@ -98,6 +100,7 @@ client_logger::~client_logger() noexcept
 {
     for (auto const &pair: file_path_severity){
         if (pair.first != "cerr")
+        {
             map_streams[pair.first].second -= 1;
             if (map_streams[pair.first].second == 0){
                 map_streams[pair.first].first -> flush();
@@ -105,6 +108,7 @@ client_logger::~client_logger() noexcept
                 delete map_streams[pair.first].first;
                 map_streams.erase(pair.first);
             }
+        }
     }
 }
 
@@ -118,7 +122,6 @@ logger const *client_logger::log(
     {
         if ((iter.second & (1 << static_cast<int>(severity))) != 0)
         {
-
             if (iter.first != "cerr")
                 *(map_streams[iter.first].first) << str << std::endl;
             else
@@ -128,40 +131,70 @@ logger const *client_logger::log(
     return this;
 }
 
-std::string client_logger::formating_string(std::string const &text, logger::severity severity) const
-{
-    std::string str;
+//std::string client_logger::formating_string(std::string const &text, logger::severity severity) const
+//{
+//    std::string str;
+//
+//    for(auto i = 0; i < format_str.size(); i++) {
+//        if(format_str[i] == '%' && (i + 1) != format_str.size()) {
+//            switch(format_str[i+1]) {
+//                case 'd':
+//                    str += current_datetime_to_string().substr(0, 10);
+//                    i++;
+//                    break;
+//                case 't':
+//                    str += current_datetime_to_string().substr(10, 9);
+//                    i++;
+//                    break;
+//                case 's':
+//                    str += severity_to_string(severity);
+//                    i++;
+//                    break;
+//                case 'm':
+//                    str += text;
+//                    i++;
+//                    break;
+//                default:
+//                    str += '%';
+//                    str += format_str[i+1];
+//                    i++;
+//                    break;
+//            }
+//        }
+//        str += format_str[i];
+//    }
+//
+//    return str;
+//}
 
-    for(auto i = 0; i < format_str.size(); i++) {
-        if(format_str[i] == '%' && (i + 1) != format_str.size()) {
-            switch(format_str[i+1]) {
+std::string client_logger::formating_string(std::string const &message, logger::severity severity) const {
+    std::string res;
+    auto ptr = format_str.begin();
+    while(ptr != format_str.end()) {
+        if(*ptr == '%') {
+            ++ptr;
+            if(ptr == format_str.end()) throw std::logic_error("Format error!");
+            switch (*ptr) {
                 case 'd':
-                    str += current_datetime_to_string().substr(0, 10);
-                    i++;
+                    res += current_datetime_to_string().substr(0, 10);
                     break;
                 case 't':
-                    str += current_datetime_to_string().substr(10, 9);
-                    i++;
+                    res += current_datetime_to_string().substr(10, 9);
                     break;
                 case 's':
-                    str += severity_to_string(severity);
-                    i++;
+                    res += logger::severity_to_string(severity);
                     break;
                 case 'm':
-                    str += text;
-                    i++;
+                    res += message;
                     break;
                 default:
-                    str += '%';
-                    str += format_str[i+1];
-                    i++;
+                    throw std::logic_error("Unknown modificator");
                     break;
             }
-        }
-        str += format_str[i];
+        }else res.push_back(*ptr);
+        ++ptr;
     }
-
-    return str;
+    return res;
 }
 
 void client_logger::copy(const client_logger & other){
@@ -178,3 +211,5 @@ void client_logger::clear() { // чтооо с тобой не так
     file_path_severity.clear();
     format_str = " ";
 }
+
+
