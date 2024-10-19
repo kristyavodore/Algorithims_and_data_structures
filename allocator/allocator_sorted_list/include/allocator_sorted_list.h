@@ -72,7 +72,11 @@ private:
 private:
     
     inline std::string get_typename() const noexcept override;
-    
+
+private:
+
+    static size_t available_block_metadata_size();
+    static size_t summ_size();
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H

@@ -1,4 +1,5 @@
 #include <not_implemented.h>
+#include <mutex>
 
 #include "../include/allocator_sorted_list.h"
 
@@ -33,11 +34,41 @@ allocator_sorted_list &allocator_sorted_list::operator=(
 
 allocator_sorted_list::allocator_sorted_list(
     size_t space_size,
-    allocator *parent_allocator,
+    allocator *parent_allocator, // parent_allocator - указатель на место, откуда выделяем память для аллокатора
     logger *logger,
     allocator_with_fit_mode::fit_mode allocate_fit_mode)
 {
-    throw not_implemented("allocator_sorted_list::allocator_sorted_list(size_t, allocator *, logger *, allocator_with_fit_mode::fit_mode)", "your code should be here...");
+    if (space_size < available_block_metadata_size()) // размер памяти под аллокатор без его меты меньше, чем мета свободного блока
+    {
+        throw std::logic_error("Can't initialize allocator instance");
+    }
+
+    size_t memory_size = space_size + summ_size(); // сложили память под аллокатор и его мету
+    try
+    {
+        _trusted_memory = parent_allocator == nullptr
+                          ? ::operator new (memory_size)
+                          : parent_allocator->allocate(1, memory_size);
+    }
+    catch (std::bad_alloc const &ex)
+    {
+        // TODO: логи очень хотят, чтобы их записали =)
+
+        throw;
+    }
+
+    allocator **parent_allocator_placement = reinterpret_cast<allocator **>(_trusted_memory);
+    *parent_allocator_placement = parent_allocator;
+
+    class logger **logger_placement = reinterpret_cast<class logger **>(parent_allocator_placement + 1);
+    *logger_placement = logger;
+
+    std::mutex *synchronizer_placement = reinterpret_cast<std::mutex *>(logger_placement + 1);
+    new (reinterpret_cast<void *>(synchronizer_placement)) std::mutex();
+    // allocator::construct(synchronizer_placement);
+
+    unsigned char *placement = reinterpret_cast<unsigned char *>(synchronizer_placement);
+
 }
 
 [[nodiscard]] void *allocator_sorted_list::allocate(
@@ -77,4 +108,13 @@ inline logger *allocator_sorted_list::get_logger() const
 inline std::string allocator_sorted_list::get_typename() const noexcept
 {
     throw not_implemented("inline std::string allocator_sorted_list::get_typename() const noexcept", "your code should be here...");
+}
+
+size_t allocator_sorted_list::available_block_metadata_size(){
+    return sizeof(size_t) + sizeof(void *);
+}
+
+size_t allocator_sorted_list::summ_size()
+{
+    return sizeof(allocator *) + sizeof(std::mutex) + sizeof(logger *) + sizeof( allocator_with_fit_mode::fit_mode) + sizeof(size_t) + sizeof(void *);
 }
