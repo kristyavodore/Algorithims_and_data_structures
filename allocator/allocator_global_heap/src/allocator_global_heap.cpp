@@ -2,9 +2,11 @@
 
 #include "../include/allocator_global_heap.h"
 
+
 allocator_global_heap::allocator_global_heap(logger *logger) //constructor
 {
     _logger = logger;
+    debug_with_guard("Exit constructor");
 }
 
 allocator_global_heap::~allocator_global_heap() //destructor
@@ -16,6 +18,7 @@ allocator_global_heap::allocator_global_heap(allocator_global_heap &&other) noex
 {
     _logger = other._logger;
     other._logger = nullptr;
+    debug_with_guard("Exit move constructor");
 }
 
 allocator_global_heap &allocator_global_heap::operator=(allocator_global_heap &&other) noexcept //move assignment operator
@@ -25,6 +28,7 @@ allocator_global_heap &allocator_global_heap::operator=(allocator_global_heap &&
             _logger = other._logger;
             other._logger = nullptr;
         }
+    debug_with_guard("Exit move assignment operator");
     return *this;
 }
 
@@ -32,15 +36,18 @@ allocator_global_heap &allocator_global_heap::operator=(allocator_global_heap &&
     size_t value_size,
     size_t values_count)
 {
+    debug_with_guard("Entrance to allocate");
     try
     {
+        debug_with_guard("Exit allocate");
         return ::operator new(value_size*values_count);
     }
     catch (std::bad_alloc &ex)
     {
-        //передаём логгеру
+        error_with_guard(ex.what());
         throw ex;
     }
+
 }
 
 void allocator_global_heap::deallocate(void *at) //destructor
@@ -57,3 +64,4 @@ inline std::string allocator_global_heap::get_typename() const noexcept
 {
     return "allocator_global_heap";
 }
+
