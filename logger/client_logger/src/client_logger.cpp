@@ -67,14 +67,39 @@ client_logger::client_logger(
     client_logger const &other)
 {
     copy(other);
+
+    for (auto& itr : file_path_severity)
+    {
+        auto pair = map_streams.find(itr.first);
+        pair -> second.second += 1;
+    }
 }
 
 client_logger &client_logger::operator=(
     client_logger const &other){
     if (this != &other)
     {
+        for (const auto& itr : file_path_severity)
+        {
+            auto& pair = map_streams[itr.first];
+            pair.second -= 1;
+
+            if (pair.second == 0)
+            {
+                pair.first -> close();
+                delete pair.first;
+            }
+        }
+
         clear();
         copy(other);
+
+        for (const auto& local_map : file_path_severity)
+        {
+            auto& pair = map_streams[local_map.first];
+            pair.second += 1;
+        }
+
     }
     return *this;
 }
@@ -82,6 +107,18 @@ client_logger &client_logger::operator=(
 client_logger::client_logger(
     client_logger &&other) noexcept
 {
+    for (const auto& iter : other.file_path_severity) // ????? не знаю, нужно лиии
+    {
+        auto& pair = map_streams[iter.first];
+        pair.second -= 1;
+
+        if (pair.second == 0)
+        {
+            pair.first -> close();
+            delete pair.first;
+        }
+    }
+
     move(std::move(other));
 }
 
@@ -89,11 +126,29 @@ client_logger &client_logger::operator=(
     client_logger &&other) noexcept {
     if (this != &other)
     {
+        for (const auto& iter : file_path_severity)
+        {
+            auto& pair = map_streams[iter.first];
+            pair.second -= 1;
+
+            if (pair.second == 0)
+            {
+                pair.first -> close();
+                delete pair.first;
+            }
+        }
+
         clear();
         move(std::move(other));
-    }
-    return *this;
 
+        for (const auto& iter : file_path_severity) // как будтоо бы не сильно надо, тк для other эти потоки уже были открыты, но надо ли их закрыть??
+        {
+            auto& pair = map_streams[iter.first];
+            pair.second += 1;
+        }
+    }
+
+    return *this;
 }
 
 client_logger::~client_logger() noexcept
@@ -211,5 +266,3 @@ void client_logger::clear() { // чтооо с тобой не так
     file_path_severity.clear();
     format_str = " ";
 }
-
-
