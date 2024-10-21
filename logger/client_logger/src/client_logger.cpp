@@ -107,45 +107,24 @@ client_logger &client_logger::operator=(
 client_logger::client_logger(
     client_logger &&other) noexcept
 {
-    for (const auto& iter : other.file_path_severity) // ????? не знаю, нужно лиии
-    {
-        auto& pair = map_streams[iter.first];
-        pair.second -= 1;
-
-        if (pair.second == 0)
-        {
-            pair.first -> close();
-            delete pair.first;
-        }
-    }
-
     move(std::move(other));
 }
 
 client_logger &client_logger::operator=(
     client_logger &&other) noexcept {
-    if (this != &other)
-    {
-        for (const auto& iter : file_path_severity)
-        {
-            auto& pair = map_streams[iter.first];
+    if (this != &other) {
+        for (const auto &iter: file_path_severity) {
+            auto &pair = map_streams[iter.first];
             pair.second -= 1;
 
-            if (pair.second == 0)
-            {
-                pair.first -> close();
+            if (pair.second == 0) {
+                pair.first->close();
                 delete pair.first;
             }
         }
 
         clear();
         move(std::move(other));
-
-        for (const auto& iter : file_path_severity) // как будтоо бы не сильно надо, тк для other эти потоки уже были открыты, но надо ли их закрыть??
-        {
-            auto& pair = map_streams[iter.first];
-            pair.second += 1;
-        }
     }
 
     return *this;
