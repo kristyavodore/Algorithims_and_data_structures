@@ -241,7 +241,7 @@ void client_logger::move(client_logger && other){
     format_str = std::move(other.format_str);
 }
 
-void client_logger::clear() { // чтооо с тобой не так
+void client_logger::clear() {
     file_path_severity.clear();
     format_str = " ";
 }
