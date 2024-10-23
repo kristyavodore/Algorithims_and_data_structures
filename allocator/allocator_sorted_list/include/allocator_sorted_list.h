@@ -24,12 +24,6 @@ public:
     ~allocator_sorted_list() override;
     
     allocator_sorted_list(
-        allocator_sorted_list const &other);
-    
-    allocator_sorted_list &operator=(
-        allocator_sorted_list const &other);
-    
-    allocator_sorted_list(
         allocator_sorted_list &&other) noexcept;
     
     allocator_sorted_list &operator=(
@@ -49,13 +43,14 @@ public:
         size_t value_size,
         size_t values_count) override;
     
-    void deallocate(
-        void *at) override;
+    void deallocate(void *at) override;
 
 public:
     
     inline void set_fit_mode(
         allocator_with_fit_mode::fit_mode mode) override;
+
+    allocator_with_fit_mode::fit_mode &get_fit_mode();
 
 private:
     
@@ -76,7 +71,15 @@ private:
 private:
 
     static size_t available_block_metadata_size();
+    static size_t ancillary_block_metadata_size();
     static size_t summ_size();
+
+    std::mutex &obtain_synchronizer() const;
+    allocator_with_fit_mode::fit_mode &obtain_fit_mode() const;
+
+    void* obtain_first_available_block_address();
+    static void *& obtain_next_available_block_address(void *);
+    static size_t &obtain_available_block_size(void *current_block);
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H
