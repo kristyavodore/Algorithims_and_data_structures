@@ -9,6 +9,8 @@ class client_logger final:
     public logger
 {
 
+    friend class client_logger_builder;
+
     std::map <std::string, unsigned char> file_path_severity;
     std::string format_str;
 
