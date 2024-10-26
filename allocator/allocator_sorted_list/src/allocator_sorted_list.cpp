@@ -143,7 +143,7 @@ allocator_sorted_list::allocator_sorted_list(
         obtain_available_block_size (target_block) = values_count * values_count; // в мету найдённого блока кладём запрошенный размер
 
         void * placement_available_piece = reinterpret_cast<void*>(reinterpret_cast<unsigned *>(target_block) + requested_size);
-        placement_available_piece = obtain_next_available_block_address(target_block);
+        obtain_next_available_block_address(placement_available_piece) = obtain_next_available_block_address(target_block);
         obtain_available_block_size(placement_available_piece) =
                 obtain_available_block_size (target_block)
                 - values_count * values_count
