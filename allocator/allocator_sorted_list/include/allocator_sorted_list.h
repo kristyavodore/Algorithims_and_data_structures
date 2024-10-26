@@ -50,7 +50,7 @@ public:
     inline void set_fit_mode(
         allocator_with_fit_mode::fit_mode mode) override;
 
-    allocator_with_fit_mode::fit_mode &get_fit_mode();
+    //allocator_with_fit_mode::fit_mode &get_fit_mode();
 
 private:
     
@@ -77,9 +77,11 @@ private:
     std::mutex &obtain_synchronizer() const;
     allocator_with_fit_mode::fit_mode &obtain_fit_mode() const;
 
-    void* obtain_first_available_block_address();
+    void*& obtain_first_available_block_address();
     static void *& obtain_next_available_block_address(void *);
+    static void *&obtain_trusted_memory_ancillary_block(void *);
     static size_t &obtain_available_block_size(void *current_block);
+    size_t &obtain_trusted_memory_size() const;
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H

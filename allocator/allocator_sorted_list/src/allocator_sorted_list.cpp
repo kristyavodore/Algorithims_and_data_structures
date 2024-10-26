@@ -95,6 +95,11 @@ allocator_sorted_list::allocator_sorted_list(
 {
     std::lock_guard<std::mutex> lock(obtain_synchronizer());
 
+    if (_trusted_memory == nullptr)
+    {
+        throw std::logic_error("Allocator instance state was moved :/");
+    }
+
     void * target_block = nullptr, *previous_to_target_block = nullptr;
     size_t requested_size = value_size * values_count + ancillary_block_metadata_size();
 
@@ -133,24 +138,34 @@ allocator_sorted_list::allocator_sorted_list(
 
 
 
-    if (values_count * values_count + available_block_metadata_size() >= obtain_available_block_size (target_block)) // если заполнения блока в него влезает мета свободного
+    if (values_count * values_count + ancillary_block_metadata_size() <= obtain_available_block_size (target_block)) // если после заполнения блока в него влезает мета свободного
     {
         obtain_available_block_size (target_block) = values_count * values_count; // в мету найдённого блока кладём запрошенный размер
 
-        void ** placement_available_piece = reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block));
-        *placement_available_piece = obtain_next_available_block_address(target_block);
-        obtain_available_block_size(placement_available_piece) = obtain_available_block_size (target_block) - values_count * values_count - available_block_metadata_size();
+        void * placement_available_piece = reinterpret_cast<void*>(reinterpret_cast<unsigned *>(target_block) + requested_size);
+        placement_available_piece = obtain_next_available_block_address(target_block);
+        obtain_available_block_size(placement_available_piece) =
+                obtain_available_block_size (target_block)
+                - values_count * values_count
+                - available_block_metadata_size();
 
         //*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block)) = obtain_next_available_block_address(target_block); // в оставшуюся часть от свободного блока положили указатель на след свободный (то есть то, что до этого было у target_block в поле указатель)
         // в поле размер у оставшегося кусочка кладём: размер бывш своб блока - запрошенный - мета свободного:
         //obtain_available_block_size(*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block))) = obtain_available_block_size (target_block) - values_count * values_count - available_block_metadata_size();
 
-        obtain_next_available_block_address(previous_to_target_block) = placement_available_piece;
+        (previous_to_target_block != nullptr
+            ? obtain_next_available_block_address(previous_to_target_block)
+            : obtain_first_available_block_address()) = placement_available_piece;
+
+        //obtain_next_available_block_address(previous_to_target_block) = placement_available_piece;
     }
     else
     {
+        warning_with_guard("more memory allocated than the user requested");
         // там уже и так лежит этот размер вроде
-        obtain_next_available_block_address(previous_to_target_block) = obtain_next_available_block_address(obtain_next_available_block_address(target_block)); // в поле указателя из previous_to_target_block кладём указатель на следующий после target
+        (previous_to_target_block != nullptr
+            ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
+            : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
     }
 
     obtain_next_available_block_address(target_block) = _trusted_memory;
@@ -161,7 +176,66 @@ allocator_sorted_list::allocator_sorted_list(
 void allocator_sorted_list::deallocate(
     void *at)
 {
-    throw not_implemented("void allocator_sorted_list::deallocate(void *)", "your code should be here...");
+    std::lock_guard<std::mutex> lock(obtain_synchronizer());
+
+    if (_trusted_memory == nullptr)
+    {
+        error_with_guard("Allocator instance state was moved :/");
+        throw std::logic_error("Allocator instance state was moved :/");
+    }
+
+    at = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(at) - ancillary_block_metadata_size());
+
+    if (at == nullptr || at < (reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size()) || at >  (reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size() + obtain_trusted_memory_size() - ancillary_block_metadata_size()))
+    {
+        error_with_guard("Invalid block address");
+        throw std::logic_error("Invalid block address");
+    }
+
+    if (obtain_trusted_memory_ancillary_block(at) != _trusted_memory)
+    {
+        error_with_guard("Attempt to deallocate block into wrong allocator instance");
+        throw std::logic_error("Attempt to deallocate block into wrong allocator instance");
+    }
+
+    void * left_available_block = nullptr;
+    void * right_available_block = obtain_first_available_block_address();
+
+    while (right_available_block != nullptr && (at > left_available_block || left_available_block== nullptr) && at < right_available_block)
+    {
+        left_available_block = right_available_block;
+        right_available_block = obtain_next_available_block_address(right_available_block);
+    }
+
+    if (left_available_block == nullptr && right_available_block == nullptr)
+    {
+        obtain_first_available_block_address() = at;
+        obtain_next_available_block_address(at) = nullptr;
+
+        return; // всё закончили, так как он единственный в списке
+    }
+
+    obtain_next_available_block_address(at) = right_available_block;
+
+    (left_available_block == nullptr
+     ? obtain_first_available_block_address()
+     : obtain_next_available_block_address(left_available_block)) = at;
+
+    // merge with right
+    if (reinterpret_cast<void *>((reinterpret_cast<unsigned *>(at) + obtain_available_block_size(at))) == right_available_block)
+    {
+        obtain_next_available_block_address(at) = obtain_next_available_block_address(right_available_block);
+        obtain_available_block_size(at) = obtain_available_block_size(at) + available_block_metadata_size() + obtain_available_block_size(right_available_block);
+    }
+
+    // merge with left block
+    if (reinterpret_cast<void *>(reinterpret_cast<unsigned *>(left_available_block) + obtain_available_block_size(left_available_block)) == at)
+    {
+        obtain_next_available_block_address(left_available_block) = obtain_next_available_block_address(at);
+        obtain_available_block_size(left_available_block) = obtain_available_block_size(left_available_block) + available_block_metadata_size() + obtain_available_block_size(at);
+
+    }
+
 }
 
 inline void allocator_sorted_list::set_fit_mode(
@@ -219,7 +293,7 @@ allocator_with_fit_mode::fit_mode &allocator_sorted_list::obtain_fit_mode() cons
 
 
 
-void* allocator_sorted_list::obtain_first_available_block_address()
+void*& allocator_sorted_list::obtain_first_available_block_address()
 {
     return *reinterpret_cast<void **>(reinterpret_cast<unsigned char *>(_trusted_memory) + sizeof(allocator *) + sizeof(logger *) + sizeof(std::mutex) + sizeof(allocator_with_fit_mode::fit_mode) + sizeof(size_t));
 }
@@ -229,10 +303,21 @@ void *&allocator_sorted_list::obtain_next_available_block_address(
     return *reinterpret_cast<void **>(current_available_block_address);
 }
 
+void *&allocator_sorted_list::obtain_trusted_memory_ancillary_block(
+        void *current_available_block_address)
+{
+    return obtain_next_available_block_address(current_available_block_address);
+}
+
+
 size_t & allocator_sorted_list::obtain_available_block_size(void * current_block){
     return *reinterpret_cast<size_t *>(&obtain_next_available_block_address(current_block)+1);
 }
 
+size_t &allocator_sorted_list::obtain_trusted_memory_size() const
+{
+    return *reinterpret_cast<size_t *>(&obtain_fit_mode() + 1);
+}
 
 // Вопросы
 // Что ещё дописать в конструктор перемещения?
