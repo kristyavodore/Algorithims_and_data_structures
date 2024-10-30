@@ -86,6 +86,8 @@ allocator_sorted_list::allocator_sorted_list(
 
     *reinterpret_cast<void **>(pointer_to_list_placement+1) = nullptr;
 
+    *reinterpret_cast<size_t *>(reinterpret_cast<void **>(pointer_to_list_placement)+1) = space_size - available_block_metadata_size();
+
 
 }
 
@@ -252,8 +254,32 @@ inline allocator *allocator_sorted_list::get_allocator() const
 
 std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_info() const noexcept
 {
-    //TODO this
-    throw not_implemented("std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_info() const noexcept", "your code should be here...");
+    std::vector<allocator_test_utils::block_info> all_blocks;
+
+    void * Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned *>(_trusted_memory) + summ_size());
+    size_t Vrem_block_size;
+    bool Vrem_is_block_occupied;
+
+    while (Vrem_ptr != nullptr)
+    {
+        // std::cout <<
+
+        // кладём в bool временную переменную занятый/свободный блок
+        // true - занято, false - свободно
+        //Vrem_is_block_occupied = (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory? false: true);
+        if (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory)
+            Vrem_is_block_occupied = true;
+        if (*reinterpret_cast<void **>(Vrem_ptr) == reinterpret_cast<void *>(reinterpret_cast<unsigned *>(Vrem_ptr) + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size()))
+            Vrem_is_block_occupied = false;
+
+        Vrem_block_size =  *reinterpret_cast<size_t *>(reinterpret_cast<void **>(Vrem_ptr)+1); // кладём размер во временную переменную
+
+        all_blocks.push_back({Vrem_block_size, Vrem_is_block_occupied});
+
+        Vrem_ptr = obtain_next_available_block_address(Vrem_ptr);
+    }
+
+    return all_blocks;
 }
 
 inline logger *allocator_sorted_list::get_logger() const
@@ -323,3 +349,11 @@ size_t &allocator_sorted_list::obtain_trusted_memory_size() const
 // Что ещё дописать в конструктор перемещения?
 // Зачем вызывать deallocate_with_guard в деструкторе и как он работает?
 // set_fit_mode() - можно ли сразу положить в obtain_fit_mode()?
+
+
+//    std::vector<allocator_test_utils::block_info> all_blocks = reinterpret_cast<allocator_sorted_list*>(alloc) -> get_blocks_info();
+//
+//    for (auto const &iter: all_blocks)
+//    {
+//        std::cout << iter.block_size << iter.is_block_occupied << std::endl;
+//    }
