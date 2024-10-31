@@ -141,7 +141,7 @@ allocator_sorted_list::allocator_sorted_list(
 
 
 
-    if (obtain_available_block_size (target_block) - values_count * values_count < available_block_metadata_size())
+    if (obtain_available_block_size (target_block) - values_count * value_size < available_block_metadata_size())
     {
         // если оставшееся место меньше меты свободного блока
         (previous_to_target_block != nullptr
@@ -159,14 +159,14 @@ allocator_sorted_list::allocator_sorted_list(
         obtain_next_available_block_address(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_next_available_block_address(target_block);
     obtain_available_block_size(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_available_block_size (target_block) - requested_size + ancillary_block_metadata_size();
 
-        obtain_available_block_size(target_block) =  values_count * values_count;
+        obtain_available_block_size(target_block) =  values_count * value_size;
     }
 
 
 /*
-    if (obtain_available_block_size (target_block) - values_count * values_count >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
+    if (obtain_available_block_size (target_block) - values_count * value_size >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
     {
-        obtain_available_block_size (target_block) = values_count * values_count; // в мету найдённого блока кладём запрошенный размер
+        obtain_available_block_size (target_block) = values_count * value_size; // в мету найдённого блока кладём запрошенный размер
 
         void * placement_available_piece = reinterpret_cast<void*>(reinterpret_cast<unsigned char *>(target_block) + requested_size);
         obtain_next_available_block_address(placement_available_piece) = obtain_next_available_block_address(target_block);
@@ -177,7 +177,7 @@ allocator_sorted_list::allocator_sorted_list(
 
         //*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block)) = obtain_next_available_block_address(target_block); // в оставшуюся часть от свободного блока положили указатель на след свободный (то есть то, что до этого было у target_block в поле указатель)
         // в поле размер у оставшегося кусочка кладём: размер бывш своб блока - запрошенный - мета свободного:
-        //obtain_available_block_size(*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block))) = obtain_available_block_size (target_block) - values_count * values_count - available_block_metadata_size();
+        //obtain_available_block_size(*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block))) = obtain_available_block_size (target_block) - values_count * value_size - available_block_metadata_size();
 
         (previous_to_target_block != nullptr
             ? obtain_next_available_block_address(previous_to_target_block)
