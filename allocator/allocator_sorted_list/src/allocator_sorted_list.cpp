@@ -154,22 +154,21 @@ allocator_sorted_list::allocator_sorted_list(
     {
         (previous_to_target_block != nullptr
          ? obtain_next_available_block_address(previous_to_target_block)
-         : obtain_first_available_block_address()) = reinterpret_cast<void*>(reinterpret_cast<unsigned *>(target_block) + requested_size);
+         : obtain_first_available_block_address()) = reinterpret_cast<void*>(reinterpret_cast<unsigned char *>(target_block) + requested_size);
 
-        obtain_next_available_block_address(reinterpret_cast<unsigned *>(target_block) + requested_size) = obtain_next_available_block_address(target_block);
-        obtain_available_block_size(reinterpret_cast<unsigned *>(target_block) + requested_size) = obtain_available_block_size (target_block) - requested_size;
+        obtain_next_available_block_address(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_next_available_block_address(target_block);
+    obtain_available_block_size(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_available_block_size (target_block) - requested_size + ancillary_block_metadata_size();
 
         obtain_available_block_size(target_block) =  values_count * values_count;
     }
 
 
-
-    /*
+/*
     if (obtain_available_block_size (target_block) - values_count * values_count >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
     {
         obtain_available_block_size (target_block) = values_count * values_count; // в мету найдённого блока кладём запрошенный размер
 
-        void * placement_available_piece = reinterpret_cast<void*>(reinterpret_cast<unsigned *>(target_block) + requested_size);
+        void * placement_available_piece = reinterpret_cast<void*>(reinterpret_cast<unsigned char *>(target_block) + requested_size);
         obtain_next_available_block_address(placement_available_piece) = obtain_next_available_block_address(target_block);
         obtain_available_block_size(placement_available_piece) =
                 obtain_available_block_size (target_block)
@@ -194,7 +193,7 @@ allocator_sorted_list::allocator_sorted_list(
             ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
             : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
     }
-    */
+*/
 
     obtain_next_available_block_address(target_block) = _trusted_memory;
 
@@ -250,14 +249,14 @@ void allocator_sorted_list::deallocate(
      : obtain_next_available_block_address(left_available_block)) = at;
 
     // merge with right
-    if (reinterpret_cast<void *>((reinterpret_cast<unsigned *>(at) + obtain_available_block_size(at))) == right_available_block)
+    if (reinterpret_cast<void *>((reinterpret_cast<unsigned char *>(at) + obtain_available_block_size(at))) == right_available_block)
     {
         obtain_next_available_block_address(at) = obtain_next_available_block_address(right_available_block);
         obtain_available_block_size(at) = obtain_available_block_size(at) + available_block_metadata_size() + obtain_available_block_size(right_available_block);
     }
 
     // merge with left block
-    if (reinterpret_cast<void *>(reinterpret_cast<unsigned *>(left_available_block) + obtain_available_block_size(left_available_block)) == at)
+    if (reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(left_available_block) + obtain_available_block_size(left_available_block)) == at)
     {
         obtain_next_available_block_address(left_available_block) = obtain_next_available_block_address(at);
         obtain_available_block_size(left_available_block) = obtain_available_block_size(left_available_block) + available_block_metadata_size() + obtain_available_block_size(at);
@@ -282,7 +281,7 @@ std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_
 {
     std::vector<allocator_test_utils::block_info> all_blocks;
 
-    void * Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned *>(_trusted_memory) + summ_size());
+    void * Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size());
     size_t Vrem_block_size;
     bool Vrem_is_block_occupied;
 
@@ -295,7 +294,7 @@ std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_
         //Vrem_is_block_occupied = (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory? false: true);
         if (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory)
             Vrem_is_block_occupied = true;
-        if (*reinterpret_cast<void **>(Vrem_ptr) == reinterpret_cast<void *>(reinterpret_cast<unsigned *>(Vrem_ptr) + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size()))
+        if (*reinterpret_cast<void **>(Vrem_ptr) == reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(Vrem_ptr) + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size()))
             Vrem_is_block_occupied = false;
 
         Vrem_block_size =  *reinterpret_cast<size_t *>(reinterpret_cast<void **>(Vrem_ptr)+1); // кладём размер во временную переменную
