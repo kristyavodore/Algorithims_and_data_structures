@@ -59,7 +59,7 @@ allocator_sorted_list::allocator_sorted_list(
     }
     catch (std::bad_alloc const &ex)
     {
-        error_with_guard(ex.what());
+        error_with_guard(std::string(ex.what()) + " no memory allocated for _trusted_memory");
         throw ex;
     }
 
@@ -99,6 +99,7 @@ allocator_sorted_list::allocator_sorted_list(
 
     if (_trusted_memory == nullptr)
     {
+        error_with_guard("Allocator instance state was moved :/");
         throw std::logic_error("Allocator instance state was moved :/");
     }
 
@@ -140,7 +141,31 @@ allocator_sorted_list::allocator_sorted_list(
 
 
 
-    if (values_count * values_count + ancillary_block_metadata_size() <= obtain_available_block_size (target_block)) // если после заполнения блока в него влезает мета свободного
+    if (obtain_available_block_size (target_block) - values_count * values_count < available_block_metadata_size())
+    {
+        // если оставшееся место меньше меты свободного блока
+        (previous_to_target_block != nullptr
+         ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
+         : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
+
+        //obtain_next_available_block_address(target_block) = _trusted_memory;
+    }
+    else
+    {
+        (previous_to_target_block != nullptr
+         ? obtain_next_available_block_address(previous_to_target_block)
+         : obtain_first_available_block_address()) = reinterpret_cast<void*>(reinterpret_cast<unsigned *>(target_block) + requested_size);
+
+        obtain_next_available_block_address(reinterpret_cast<unsigned *>(target_block) + requested_size) = obtain_next_available_block_address(target_block);
+        obtain_available_block_size(reinterpret_cast<unsigned *>(target_block) + requested_size) = obtain_available_block_size (target_block) - requested_size;
+
+        obtain_available_block_size(target_block) =  values_count * values_count;
+    }
+
+
+
+    /*
+    if (obtain_available_block_size (target_block) - values_count * values_count >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
     {
         obtain_available_block_size (target_block) = values_count * values_count; // в мету найдённого блока кладём запрошенный размер
 
@@ -169,6 +194,7 @@ allocator_sorted_list::allocator_sorted_list(
             ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
             : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
     }
+    */
 
     obtain_next_available_block_address(target_block) = _trusted_memory;
 
