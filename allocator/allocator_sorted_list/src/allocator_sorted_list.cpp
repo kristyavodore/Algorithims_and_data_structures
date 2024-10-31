@@ -88,6 +88,7 @@ allocator_sorted_list::allocator_sorted_list(
 
     *reinterpret_cast<size_t *>(reinterpret_cast<void **>(pointer_to_list_placement)+1) = space_size - available_block_metadata_size();
 
+    debug_with_guard("Constructor");
 
 }
 
@@ -102,6 +103,8 @@ allocator_sorted_list::allocator_sorted_list(
         error_with_guard("Allocator instance state was moved :/");
         throw std::logic_error("Allocator instance state was moved :/");
     }
+
+    debug_with_guard("Start allocate");
 
     void * target_block = nullptr, *previous_to_target_block = nullptr;
     size_t requested_size = value_size * values_count + ancillary_block_metadata_size();
@@ -140,7 +143,7 @@ allocator_sorted_list::allocator_sorted_list(
     }
 
 
-
+/*
     if (obtain_available_block_size (target_block) - values_count * value_size < available_block_metadata_size())
     {
         // если оставшееся место меньше меты свободного блока
@@ -161,9 +164,9 @@ allocator_sorted_list::allocator_sorted_list(
 
         obtain_available_block_size(target_block) =  values_count * value_size;
     }
+*/
 
 
-/*
     if (obtain_available_block_size (target_block) - values_count * value_size >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
     {
         obtain_available_block_size (target_block) = values_count * value_size; // в мету найдённого блока кладём запрошенный размер
@@ -172,7 +175,7 @@ allocator_sorted_list::allocator_sorted_list(
         obtain_next_available_block_address(placement_available_piece) = obtain_next_available_block_address(target_block);
         obtain_available_block_size(placement_available_piece) =
                 obtain_available_block_size (target_block)
-                - values_count * values_count
+                - values_count * value_size
                 - available_block_metadata_size();
 
         //*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block)) = obtain_next_available_block_address(target_block); // в оставшуюся часть от свободного блока положили указатель на след свободный (то есть то, что до этого было у target_block в поле указатель)
@@ -193,9 +196,11 @@ allocator_sorted_list::allocator_sorted_list(
             ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
             : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
     }
-*/
+
 
     obtain_next_available_block_address(target_block) = _trusted_memory;
+
+    debug_with_guard("Finish allocate");
 
     return reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(target_block) + ancillary_block_metadata_size());
 }
@@ -210,6 +215,8 @@ void allocator_sorted_list::deallocate(
         error_with_guard("Allocator instance state was moved :/");
         throw std::logic_error("Allocator instance state was moved :/");
     }
+
+    debug_with_guard("Start deallocate");
 
     at = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(at) - ancillary_block_metadata_size());
 
@@ -263,47 +270,49 @@ void allocator_sorted_list::deallocate(
 
     }
 
+    debug_with_guard("Finish deallocate");
 }
 
 inline void allocator_sorted_list::set_fit_mode(
     allocator_with_fit_mode::fit_mode mode)
 {
     obtain_fit_mode() = mode;
+    trace_with_guard("Method set_fit_mode()");
 }
 
 
 inline allocator *allocator_sorted_list::get_allocator() const
 {
+    trace_with_guard("Method get_allocator()");
     return *reinterpret_cast<allocator**>(_trusted_memory);
 }
 
 std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_info() const noexcept
 {
+    debug_with_guard("start method get_blocks_info()");
+
     std::vector<allocator_test_utils::block_info> all_blocks;
+    allocator_test_utils::block_info block{}; //он хотел от меня странные скобочки:/
 
     void * Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size());
-    size_t Vrem_block_size;
-    bool Vrem_is_block_occupied;
+//    size_t Vrem_block_size;
+//    bool Vrem_is_block_occupied;
 
     while (Vrem_ptr != nullptr)
     {
-        // std::cout <<
-
-        // кладём в bool временную переменную занятый/свободный блок
         // true - занято, false - свободно
-        //Vrem_is_block_occupied = (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory? false: true);
         if (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory)
-            Vrem_is_block_occupied = true;
+            block.is_block_occupied = true;
         if (*reinterpret_cast<void **>(Vrem_ptr) == reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(Vrem_ptr) + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size()))
-            Vrem_is_block_occupied = false;
+            block.is_block_occupied = false;
 
-        Vrem_block_size =  *reinterpret_cast<size_t *>(reinterpret_cast<void **>(Vrem_ptr)+1); // кладём размер во временную переменную
+        block.block_size =  *reinterpret_cast<size_t *>(reinterpret_cast<void **>(Vrem_ptr)+1); // размер
 
-        all_blocks.push_back({Vrem_block_size, Vrem_is_block_occupied});
+        all_blocks.push_back(block);
 
         Vrem_ptr = obtain_next_available_block_address(Vrem_ptr);
     }
-
+    debug_with_guard("finish method get_blocks_info()");
     return all_blocks;
 }
 
