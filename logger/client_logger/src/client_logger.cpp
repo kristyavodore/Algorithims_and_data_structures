@@ -6,7 +6,9 @@
 
 std::map <std::string, std::pair<std::ofstream*, int>> client_logger::map_streams = std::map <std::string, std::pair<std::ofstream*, int>>(); // инициализация статического поля
 
-client_logger::client_logger(std::map <std::string, unsigned char> const & path_severity, std::string const & format):file_path_severity(path_severity), format_str(format){
+client_logger::client_logger(std::map <std::string, unsigned char> const & path_severity, std::string const & format):file_path_severity(path_severity){
+    format.empty()? format_str = "%t %d %m %s": format_str = format;
+
 //    for (auto i=0; i < format.size();  i++)
 //    {
 //        if (format[i] == '%')
