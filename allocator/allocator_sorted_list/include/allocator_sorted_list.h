@@ -59,6 +59,7 @@ private:
 public:
     
     std::vector<allocator_test_utils::block_info> get_blocks_info() const noexcept override;
+    void print_log_get_blocks_info();
 
 private:
     
@@ -82,6 +83,8 @@ private:
     static void *&obtain_trusted_memory_ancillary_block(void *);
     static size_t &obtain_available_block_size(void *current_block);
     size_t &obtain_trusted_memory_size() const;
+
+    void free_memory();
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H
