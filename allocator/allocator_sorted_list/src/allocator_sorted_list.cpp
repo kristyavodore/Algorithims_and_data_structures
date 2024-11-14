@@ -247,8 +247,17 @@ void allocator_sorted_list::deallocate(
     void * left_available_block = nullptr;
     void * right_available_block = obtain_first_available_block_address();
 
-    while (right_available_block != nullptr && (at > left_available_block || left_available_block== nullptr) && at < right_available_block)
+    //while (right_available_block != nullptr && (at > left_available_block || left_available_block== nullptr) && at < right_available_block)
+    //{
+    //    left_available_block = right_available_block;
+    //    right_available_block = obtain_next_available_block_address(right_available_block);
+    //}
+
+    while (right_available_block != nullptr)
     {
+        if (at > left_available_block && at < right_available_block){
+            break;
+        }
         left_available_block = right_available_block;
         right_available_block = obtain_next_available_block_address(right_available_block);
     }
@@ -268,14 +277,14 @@ void allocator_sorted_list::deallocate(
      : obtain_next_available_block_address(left_available_block)) = at;
 
     // merge with right
-    if (reinterpret_cast<void *>((reinterpret_cast<unsigned char *>(at) + obtain_available_block_size(at))) == right_available_block)
+    if (right_available_block != nullptr &&reinterpret_cast<void *>((reinterpret_cast<unsigned char *>(at) + obtain_available_block_size(at))) == right_available_block)
     {
         obtain_next_available_block_address(at) = obtain_next_available_block_address(right_available_block);
         obtain_available_block_size(at) = obtain_available_block_size(at) + available_block_metadata_size() + obtain_available_block_size(right_available_block);
     }
 
     // merge with left block
-    if (reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(left_available_block) + obtain_available_block_size(left_available_block)) == at)
+    if (left_available_block != nullptr && reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(left_available_block) + obtain_available_block_size(left_available_block)) == at)
     {
         obtain_next_available_block_address(left_available_block) = obtain_next_available_block_address(at);
         obtain_available_block_size(left_available_block) = obtain_available_block_size(left_available_block) + available_block_metadata_size() + obtain_available_block_size(at);
@@ -307,32 +316,20 @@ std::vector<allocator_test_utils::block_info> allocator_sorted_list::get_blocks_
     std::vector<allocator_test_utils::block_info> all_blocks;
     allocator_test_utils::block_info block{}; //он хотел от меня странные скобочки:/
 
-    void ** Vrem_ptr = reinterpret_cast<void **>(reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size());
+    void * Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(_trusted_memory) + summ_size());
 
-    do
+    while (Vrem_ptr < (reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(_trusted_memory)
+                            + summ_size() + obtain_trusted_memory_size() - available_block_metadata_size())))
     {
         block.is_block_occupied = obtain_next_available_block_address(Vrem_ptr) == _trusted_memory;
 
-        /*// true - занято, false - свободно
-        if (*reinterpret_cast<void **>(Vrem_ptr) == _trusted_memory)
-            block.is_block_occupied = true;
-        if (*reinterpret_cast<void **>(Vrem_ptr) == reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(Vrem_ptr) + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size()))
-            block.is_block_occupied = false;*/
-
         block.block_size = obtain_available_block_size(Vrem_ptr); // размер
-        //block.block_size =  *reinterpret_cast<size_t *>(reinterpret_cast<void **>(Vrem_ptr)+1); // размер
 
         all_blocks.push_back(block);
 
-        if (obtain_next_available_block_address(Vrem_ptr) != nullptr) {
-            Vrem_ptr += obtain_available_block_size(Vrem_ptr);
-        }
-        /*else{
-            block.is_block_occupied = obtain_next_available_block_address(Vrem_ptr) == _trusted_memory;
-            block.block_size = obtain_available_block_size(Vrem_ptr);
-            all_blocks.push_back(block);
-        }*/
-    } while (obtain_next_available_block_address(Vrem_ptr) != nullptr);
+        Vrem_ptr = reinterpret_cast<void *>(reinterpret_cast<unsigned char *>(Vrem_ptr)
+                                                            + obtain_available_block_size(Vrem_ptr) + available_block_metadata_size());
+    }
     //debug_with_guard("finish method get_blocks_info()");
     return all_blocks;
 }
@@ -407,7 +404,7 @@ void *&allocator_sorted_list::obtain_trusted_memory_ancillary_block(
 
 
 size_t & allocator_sorted_list::obtain_available_block_size(void * current_block){
-    return *reinterpret_cast<size_t *>(&obtain_next_available_block_address(current_block)+1);
+    return *reinterpret_cast<size_t *>(&obtain_next_available_block_address(current_block) + 1);
 }
 
 size_t &allocator_sorted_list::obtain_trusted_memory_size() const
