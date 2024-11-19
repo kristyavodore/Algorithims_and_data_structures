@@ -5,16 +5,8 @@
 
 allocator_sorted_list::~allocator_sorted_list()
 {
-    if (_trusted_memory == nullptr)
-    {
-        return;
-    }
-
-    obtain_synchronizer().~mutex();
-    //allocator::destruct(&obtain_synchronizer());
-
     debug_with_guard("Destructor");
-    deallocate_with_guard(_trusted_memory);
+    free_memory();
 }
 
 allocator_sorted_list::allocator_sorted_list(
@@ -151,30 +143,6 @@ allocator_sorted_list::allocator_sorted_list(
     }
 
 
-/*
-    if (obtain_available_block_size (target_block) - values_count * value_size < available_block_metadata_size())
-    {
-        // если оставшееся место меньше меты свободного блока
-        (previous_to_target_block != nullptr
-         ? obtain_next_available_block_address(previous_to_target_block)  // в поле указателя из previous_to_target_block кладём указатель на следующий после target
-         : obtain_first_available_block_address()) = obtain_next_available_block_address(target_block);
-
-        //obtain_next_available_block_address(target_block) = _trusted_memory;
-    }
-    else
-    {
-        (previous_to_target_block != nullptr
-         ? obtain_next_available_block_address(previous_to_target_block)
-         : obtain_first_available_block_address()) = reinterpret_cast<void*>(reinterpret_cast<unsigned char *>(target_block) + requested_size);
-
-        obtain_next_available_block_address(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_next_available_block_address(target_block);
-    obtain_available_block_size(reinterpret_cast<unsigned char *>(target_block) + requested_size) = obtain_available_block_size (target_block) - requested_size + ancillary_block_metadata_size();
-
-        obtain_available_block_size(target_block) =  values_count * value_size;
-    }
-*/
-
-
     if (obtain_available_block_size (target_block) - values_count * value_size >= available_block_metadata_size()) // если после заполнения блока в него влезает мета свободного
     {
 
@@ -187,15 +155,11 @@ allocator_sorted_list::allocator_sorted_list(
                 - values_count * value_size - available_block_metadata_size();
 
         obtain_available_block_size (target_block) = values_count * value_size; // в мету найдённого блока кладём запрошенный размер
-        //*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block)) = obtain_next_available_block_address(target_block); // в оставшуюся часть от свободного блока положили указатель на след свободный (то есть то, что до этого было у target_block в поле указатель)
-        // в поле размер у оставшегося кусочка кладём: размер бывш своб блока - запрошенный - мета свободного:
-        //obtain_available_block_size(*reinterpret_cast<void**>(&obtain_available_block_size(target_block) + obtain_available_block_size (target_block))) = obtain_available_block_size (target_block) - values_count * value_size - available_block_metadata_size();
 
         (previous_to_target_block != nullptr
             ? obtain_next_available_block_address(previous_to_target_block)
             : obtain_first_available_block_address()) = placement_available_piece;
 
-        //obtain_next_available_block_address(previous_to_target_block) = placement_available_piece;
     }
     else
     {
@@ -246,12 +210,6 @@ void allocator_sorted_list::deallocate(
 
     void * left_available_block = nullptr;
     void * right_available_block = obtain_first_available_block_address();
-
-    //while (right_available_block != nullptr && (at > left_available_block || left_available_block== nullptr) && at < right_available_block)
-    //{
-    //    left_available_block = right_available_block;
-    //    right_available_block = obtain_next_available_block_address(right_available_block);
-    //}
 
     while (right_available_block != nullptr)
     {
@@ -416,7 +374,7 @@ void allocator_sorted_list::free_memory() {
     if(_trusted_memory == nullptr)
         return;
     debug_with_guard("free_memory()");
-    allocator::destruct(&obtain_synchronizer());
+    allocator::destruct(&obtain_synchronizer()); // дважды разрушаем mutex??
 
     deallocate_with_guard(_trusted_memory);
 }
@@ -425,11 +383,3 @@ void allocator_sorted_list::free_memory() {
 // Что ещё дописать в конструктор перемещения?
 // Зачем вызывать deallocate_with_guard в деструкторе и как он работает?
 // set_fit_mode() - можно ли сразу положить в obtain_fit_mode()?
-
-
-//    std::vector<allocator_test_utils::block_info> all_blocks = reinterpret_cast<allocator_sorted_list*>(alloc) -> get_blocks_info();
-//
-//    for (auto const &iter: all_blocks)
-//    {
-//        std::cout << iter.block_size << iter.is_block_occupied << std::endl;
-//    }
