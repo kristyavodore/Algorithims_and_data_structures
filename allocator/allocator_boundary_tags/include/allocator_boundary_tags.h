@@ -65,6 +65,7 @@ private:
 public:
     
     std::vector<allocator_test_utils::block_info> get_blocks_info() const noexcept override;
+    void print_log_get_blocks_info();
 
 private:
     
@@ -81,18 +82,20 @@ private:
     static size_t common_metadata_size();
 
 // for common meta
-    std::mutex& obtain_mutex();
-    size_t obtain_space_size();
+    std::mutex& obtain_mutex() const;
+    size_t obtain_space_size() const;
     allocator_with_fit_mode::fit_mode &obtain_fit_mode() const;
 
-    void * ptr_on_first_block();
+    void * ptr_on_first_block() const;
 
-    bool chek_ptr_in_allowed_area(void * current_block);
+    void free_memory();
+
+    bool chek_ptr_in_allowed_area(void * current_block) const;
 
 // for blocks
-    size_t &obtain_size_block(void * current_block);
-    bool obtain_is_block_occupied(void *current_block);
-    void* next_block(void * current_block);
+    static size_t &obtain_size_block(void * current_block);
+    static bool obtain_is_block_occupied(void *current_block);
+    static void* next_block(void * current_block);
 
 // set information in blocks
     void set_size_block(void * current_block, size_t size_block);
