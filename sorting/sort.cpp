@@ -61,32 +61,58 @@ public:
 };
 
 template <typename T>
-class quick_sorting final : public sorting<T>{
-private:
-    std::vector<T> max(std::vector<T> const & vector){
-
-    }
+class selection_sorting final : public sorting<T>{
 
 public:
-    std::vector<T> sort(std::vector<T> const & vector, std::function <bool(T const &, T const &)> const & compar) const override{
+
+    std::vector<T> sort(std::vector<T> const & vec, std::function <bool(T const &, T const &)> const & compar) override{
+
+        std::vector<T> vector = vec;
 
         int c = vector.size();
-        for (int j = c; j > 0; --j ){
+        for (int j = c-1; j > 0; --j ){
 
             //находим макс элемент
-            int max_position;
+            int max_position = j;
             int max = 0;
             for (int i = j - 1 ; i > 0 ; --i ){
-                if (max < vector[i])
+                if ( compar(max, vector[i]) ){
                     max = vector[i];
-                max_position =
+                    max_position = i;
+                }
             }
 
-            if (max > vector [j]){
-
+            if (j != max_position){
+                std::swap(vector[j], vector[max_position]);
             }
-
         }
+        return vec;
+    }
+};
+
+template <typename T>
+class shell_sorting final : public sorting<T> {
+
+public:
+
+    std::vector<T> sort(std::vector<T> const &vec, std::function<bool(T const &, T const &)> const &compar) override {
+
+        std::vector<T> vector = vec;
+
+        for (int h = vec.size() / 2; h > 0; h /= 2) {
+            for (int j = h; j < vec.size(); ++j) {
+                T k = vec[j];
+                int i = j - h;
+
+                while (i >= 0 && compar(k, vec[i])) {
+                    vec[i + h] = vec[i];
+                    i -= h;
+                }
+
+                vec[i + h] = k;
+            }
+        }
+        return vec;
     }
 };
 
@@ -95,22 +121,12 @@ int main() {
     std::vector<int> vec = { 9, 2, 4, 1, 5, 6, 3 };
 
     std::function<bool(const int&, const int&)> comp = [](const int& a, const int& b) { return a < b; };
-    counting_sorting <int> s;
+    selection_sorting <int> s;
     std::vector<int> result = s.sort(vec, comp);
 
-    //for (auto const & i : result)
-    //std::cout << i << " ";
-
-
-    int max = 0;
-    for (int i = 7 - 1 ; i >= 0 ; --i ){
-
-        if (max < vec[i]){
-            max = vec[i];
-        }
-
+    for (auto const & i : result){
+        std::cout << i << " ";
     }
-    std::cout << max;
 
 
     return 0;
